@@ -15,7 +15,10 @@ DB_HOST = "localhost"
 DB_PORT = "5432"
 DB_NAME = "deliverysense"
 
-engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
+engine = create_engine(
+    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
+    connect_args={"sslmode": "require"}
+)
 
 # --- 2. MAP EACH CSV TO A TABLE NAME ---
 DATA_FOLDER = "data/"
