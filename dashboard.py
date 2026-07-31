@@ -8,19 +8,27 @@ import plotly.express as px
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
 
-load_dotenv()
+load_dotenv()  # loads .env when running locally
 
-# CONFIG (match load_data.py)
+def get_secret(key, default=None):
+    """Read from Streamlit Cloud secrets first, fall back to local .env."""
+    try:
+        if key in st.secrets:
+            return st.secrets[key]
+    except Exception:
+        pass
+    return os.getenv(key, default)
 
-DB_USER = "postgres"
-DB_PASSWORD = quote_plus(os.getenv("DB_PASSWORD"))
-DB_HOST = "localhost"
-DB_PORT = "5432"
-DB_NAME = "deliverysense"
+# --- CONFIG (match load_data.py, but now points at Neon) ---
+DB_USER = get_secret("DB_USER")
+DB_PASSWORD = quote_plus(get_secret("DB_PASSWORD"))
+DB_HOST = get_secret("DB_HOST")          # e.g. ep-xxxx-xxxx.us-east-2.aws.neon.tech
+DB_PORT = get_secret("DB_PORT", "5432")
+DB_NAME = get_secret("DB_NAME", "deliverysense")
 
 engine = create_engine(
     f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
-    connect_args={"sslmode": "require"}
+    connect_args={"sslmode": "require"}   # Neon requires SSL
 )
 
 st.set_page_config(
