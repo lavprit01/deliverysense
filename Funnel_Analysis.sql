@@ -85,3 +85,35 @@ JOIN order_items oi ON o.order_id = oi.order_id
 JOIN sellers s ON oi.seller_id = s.seller_id
 WHERE o.order_status = 'delivered'
 GROUP BY seller_customer_match;
+
+-- Repeat purchase rate segmented by first order's delivery status
+
+WITH first_orders AS (
+    SELECT DISTINCT ON (c.customer_unique_id)
+        c.customer_unique_id,
+        o.order_id,
+        o.order_purchase_timestamp,
+        CASE
+            WHEN o.order_delivered_customer_date > o.order_estimated_delivery_date THEN 'Late'
+            ELSE 'On Time or Early'
+        END AS first_order_status
+    FROM orders o
+    JOIN customers c ON o.customer_id = c.customer_id
+    WHERE o.order_status = 'delivered' AND o.order_delivered_customer_date IS NOT NULL
+    ORDER BY c.customer_unique_id, o.order_purchase_timestamp ASC
+),
+order_counts AS (
+    SELECT c.customer_unique_id, COUNT(*) AS total_orders
+    FROM orders o
+    JOIN customers c ON o.customer_id = c.customer_id
+    WHERE o.order_status = 'delivered'
+    GROUP BY c.customer_unique_id
+)
+SELECT
+    fo.first_order_status,
+    COUNT(*) AS num_customers,
+    SUM(CASE WHEN oc.total_orders > 1 THEN 1 ELSE 0 END) AS repeat_customers,
+    ROUND(100.0 * SUM(CASE WHEN oc.total_orders > 1 THEN 1 ELSE 0 END) / COUNT(*), 2) AS repeat_purchase_rate_pct
+FROM first_orders fo
+JOIN order_counts oc ON fo.customer_unique_id = oc.customer_unique_id
+GROUP BY fo.first_order_status;

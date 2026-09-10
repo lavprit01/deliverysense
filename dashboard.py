@@ -188,6 +188,41 @@ def load_geo_root_cause():
     return pd.read_sql(query, engine)
 
 @st.cache_data(ttl=3600)
+def load_retention_by_delay():
+    query = """
+        WITH first_orders AS (
+            SELECT DISTINCT ON (c.customer_unique_id)
+                c.customer_unique_id,
+                o.order_id,
+                o.order_purchase_timestamp,
+                CASE
+                    WHEN o.order_delivered_customer_date > o.order_estimated_delivery_date THEN 'Late'
+                    ELSE 'On Time or Early'
+                END AS first_order_status
+            FROM orders o
+            JOIN customers c ON o.customer_id = c.customer_id
+            WHERE o.order_status = 'delivered' AND o.order_delivered_customer_date IS NOT NULL
+            ORDER BY c.customer_unique_id, o.order_purchase_timestamp ASC
+        ),
+        order_counts AS (
+            SELECT c.customer_unique_id, COUNT(*) AS total_orders
+            FROM orders o
+            JOIN customers c ON o.customer_id = c.customer_id
+            WHERE o.order_status = 'delivered'
+            GROUP BY c.customer_unique_id
+        )
+        SELECT
+            fo.first_order_status,
+            COUNT(*) AS num_customers,
+            SUM(CASE WHEN oc.total_orders > 1 THEN 1 ELSE 0 END) AS repeat_customers,
+            ROUND(100.0 * SUM(CASE WHEN oc.total_orders > 1 THEN 1 ELSE 0 END) / COUNT(*), 2) AS repeat_purchase_rate_pct
+        FROM first_orders fo
+        JOIN order_counts oc ON fo.customer_unique_id = oc.customer_unique_id
+        GROUP BY fo.first_order_status;
+    """
+    return pd.read_sql(query, engine)
+
+@st.cache_data(ttl=3600)
 def load_overall_kpis():
     query = """
         SELECT
@@ -492,3 +527,56 @@ elif section == "Root Cause":
 
 st.markdown("---")
 st.caption("DeliverySense - an end-to-end data analytics project covering database design, SQL analysis, and interactive dashboarding. Tech stack: PostgreSQL · pandas · SQLAlchemy · Streamlit · Plotly.")
+
+# ============================================================
+# SECTION 6: CUSTOMER RETENTION
+# ============================================================
+elif section == "Customer Retention":
+    st.markdown('<div class="section-header">Repeat Purchase Rate by First-Order Delivery Status</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-sub">Does a late first delivery predict whether a customer comes back</div>', unsafe_allow_html=True)
+
+    df7 = load_retention_by_delay()
+
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        fig7 = px.bar(
+            df7,
+            x="first_order_status",
+            y="repeat_purchase_rate_pct",
+            color="first_order_status",
+            color_discrete_map={"Late": BAD_COLOR, "On Time or Early": GOOD_COLOR},
+            template=plotly_template,
+            text="repeat_purchase_rate_pct",
+            labels={"repeat_purchase_rate_pct": "Repeat Purchase Rate (%)", "first_order_status": "First Order Delivery Status"},
+        )
+        fig7.update_traces(textposition="outside")
+        fig7.update_layout(height=420, margin=dict(l=10, r=10, t=10, b=10))
+        st.plotly_chart(fig7, use_container_width=True)
+    with col2:
+        fig7b = px.bar(
+            df7,
+            x="first_order_status",
+            y="num_customers",
+            color="first_order_status",
+            color_discrete_map={"Late": BAD_COLOR, "On Time or Early": GOOD_COLOR},
+            template=plotly_template,
+            text="num_customers",
+            labels={"num_customers": "Number of Customers", "first_order_status": "First Order Delivery Status"},
+        )
+        fig7b.update_traces(textposition="outside")
+        fig7b.update_layout(height=420, margin=dict(l=10, r=10, t=10, b=10))
+        st.plotly_chart(fig7b, use_container_width=True)
+
+    st.dataframe(df7, use_container_width=True, hide_index=True)
+
+    late_row = df7[df7["first_order_status"] == "Late"]
+    ontime_row = df7[df7["first_order_status"] == "On Time or Early"]
+    if not late_row.empty and not ontime_row.empty:
+        retention_gap = round(ontime_row["repeat_purchase_rate_pct"].iloc[0] - late_row["repeat_purchase_rate_pct"].iloc[0], 2)
+        st.markdown(f"""
+            <div class="insight-box">
+            <b>Insight:</b> Customers whose first order arrived on time repeat-purchase at a rate
+            {retention_gap} percentage points higher than customers whose first order was late.
+            This links delivery performance directly to long-term retention, not just a one-time review score.
+            </div>
+        """, unsafe_allow_html=True)
