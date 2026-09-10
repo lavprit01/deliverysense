@@ -246,7 +246,7 @@ with st.sidebar:
     st.markdown("---")
     section = st.radio(
         "Jump to section",
-        ["Overview", "Regional Analysis", "Category Analysis", "Customer Impact", "Root Cause"],
+        ["Overview", "Regional Analysis", "Category Analysis", "Customer Impact", "Root Cause", "Customer Retention"],
     )
     st.markdown("---")
     
@@ -525,6 +525,7 @@ elif section == "Root Cause":
             </div>
         """, unsafe_allow_html=True)
 
+
 # SECTION 6: CUSTOMER RETENTION
 
 elif section == "Customer Retention":
@@ -579,4 +580,3 @@ elif section == "Customer Retention":
 
 st.markdown("---")
 st.caption("DeliverySense - an end-to-end data analytics project covering database design, SQL analysis, and interactive dashboarding. Tech stack: PostgreSQL · pandas · SQLAlchemy · Streamlit · Plotly.")
-
