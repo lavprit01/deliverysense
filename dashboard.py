@@ -528,9 +528,8 @@ elif section == "Root Cause":
 st.markdown("---")
 st.caption("DeliverySense - an end-to-end data analytics project covering database design, SQL analysis, and interactive dashboarding. Tech stack: PostgreSQL · pandas · SQLAlchemy · Streamlit · Plotly.")
 
-# ============================================================
 # SECTION 6: CUSTOMER RETENTION
-# ============================================================
+
 elif section == "Customer Retention":
     st.markdown('<div class="section-header">Repeat Purchase Rate by First-Order Delivery Status</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-sub">Does a late first delivery predict whether a customer comes back</div>', unsafe_allow_html=True)
