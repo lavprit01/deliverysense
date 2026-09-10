@@ -525,9 +525,6 @@ elif section == "Root Cause":
             </div>
         """, unsafe_allow_html=True)
 
-st.markdown("---")
-st.caption("DeliverySense - an end-to-end data analytics project covering database design, SQL analysis, and interactive dashboarding. Tech stack: PostgreSQL · pandas · SQLAlchemy · Streamlit · Plotly.")
-
 # SECTION 6: CUSTOMER RETENTION
 
 elif section == "Customer Retention":
@@ -579,3 +576,7 @@ elif section == "Customer Retention":
             This links delivery performance directly to long-term retention, not just a one-time review score.
             </div>
         """, unsafe_allow_html=True)
+
+st.markdown("---")
+st.caption("DeliverySense - an end-to-end data analytics project covering database design, SQL analysis, and interactive dashboarding. Tech stack: PostgreSQL · pandas · SQLAlchemy · Streamlit · Plotly.")
+
